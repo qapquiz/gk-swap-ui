@@ -11,6 +11,7 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { dasApi } from '@metaplex-foundation/digital-asset-standard-api'
 import type { DasApiAsset, DasApiAssetList } from '@metaplex-foundation/digital-asset-standard-api'
 import { publicKey } from "@metaplex-foundation/umi";
+import type { GhostKidSwapResponse } from "@/app/api/ghostkid/swap/route";
 
 const KIDS_TOKEN_MINT = '4peG5vF6VXbUt8PPA5LDbtdeRAPBGGrspDMW3ot6TdeX'
 const GHOST_KID_COLLECTION_ADDRESS = 'FSw4cZhK5pMmhEDenDpa3CauJ9kLt5agr2U1oQxaH2cv'
@@ -78,13 +79,19 @@ export function useGhostKidSwap() {
 				throw new Error('Wallet not connected')
 			}
 
-			const result = await fetch("https://app.ghostkid.io/api/hybrid-actions/withdraw", {
+			const result = await fetch("/api/ghostkid/swap", {
 				method: "POST",
 				body: JSON.stringify({
 					"withdrawer": walletPublicKey.toBase58(),
 					"nftMints": [selectedNFT.id]
 				}),
 			});
+
+			if (!result.ok) {
+				throw new Error('Cannot initiate swap')
+			}
+
+			const ghostkidSwapResponse: GhostKidSwapResponse = await result.json();
 
 			return null
 		},
