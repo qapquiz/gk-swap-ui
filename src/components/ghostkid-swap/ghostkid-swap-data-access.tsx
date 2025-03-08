@@ -5,7 +5,7 @@ import { useCluster } from "@/components/cluster/cluster-data-access";
 import { useTransactionToast } from "@/components/ui/ui-layout";
 import { useMemo } from "react";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { dasApi } from '@metaplex-foundation/digital-asset-standard-api'
@@ -19,7 +19,7 @@ const POOL_ADDRESS = 'JCSbaLqdn6nKtTVTUjAaxsv28TBhmpypcY3VAqdGKWLA';
 
 export function useGhostKidSwap() {
 	const { connection } = useConnection();
-	const { publicKey: walletPublicKey } = useWallet();
+	const { publicKey: walletPublicKey, signTransaction } = useWallet();
 	const { cluster } = useCluster();
 	const transactionToast = useTransactionToast();
 	const umi = useMemo(() => createUmi(connection.rpcEndpoint), [connection.rpcEndpoint]).use(dasApi())
@@ -75,29 +75,62 @@ export function useGhostKidSwap() {
 	const ghostKidSwap = useMutation({
 		mutationKey: ['ghostkid', 'swap', { cluster }],
 		mutationFn: async (selectedNFT: DasApiAsset) => {
-			if (!walletPublicKey) {
+			if (!walletPublicKey || !signTransaction) {
 				throw new Error('Wallet not connected')
 			}
 
-			const result = await fetch("/api/ghostkid/swap", {
-				method: "POST",
-				body: JSON.stringify({
-					"withdrawer": walletPublicKey.toBase58(),
-					"nftMints": [selectedNFT.id]
-				}),
-			});
+			try {
+				// get swap transaction from ghostkid backend
+				const result = await fetch("/api/ghostkid/swap", {
+					method: "POST",
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						"withdrawer": walletPublicKey.toBase58(),
+						"nftMints": [selectedNFT.id]
+					}),
+				});
 
-			if (!result.ok) {
-				throw new Error('Cannot initiate swap')
+				if (!result.ok) {
+					throw new Error('Cannot initiate swap')
+				}
+
+				const ghostkidSwapResponse: GhostKidSwapResponse = await result.json();
+
+				// convert from response to Transaction in Solana
+				const swapTxBuffer = Buffer.from(ghostkidSwapResponse.transactions[0], 'base64')
+				const tx = Transaction.from(swapTxBuffer)
+
+				// sign transaction
+				const signedTx = await signTransaction(tx)
+
+				// send and confirm transaction
+				const latestBlockHash = await connection.getLatestBlockhash()
+				const rawTx = signedTx.serialize()
+				const txId = await connection.sendRawTransaction(rawTx, {
+					skipPreflight: true,
+					maxRetries: 3,
+				})
+
+				await connection.confirmTransaction({
+					blockhash: latestBlockHash.blockhash,
+					lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+					signature: txId,
+				})
+
+				return txId
+			} catch (error) {
+				throw new Error(`cannot swap Ghost Kid: ${error}`)
 			}
-
-			const ghostkidSwapResponse: GhostKidSwapResponse = await result.json();
-
-			return null
+		},
+		onSuccess: (txId: string) => {
+			console.log(`https://xray.helius.xyz/tx/${txId}`)
+		},
+		onError: (error, variables, context) => {
+			console.error(error)
 		},
 	});
-
-
 
 	return {
 		kidsATA,

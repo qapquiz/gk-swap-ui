@@ -1,11 +1,12 @@
 'use client'
 
-import { useWallet } from "@solana/wallet-adapter-react"
+import { useConnection, useWallet } from "@solana/wallet-adapter-react"
 import { useGhostKidSwap } from "./ghostkid-swap-data-access"
 import { useMemo, useState } from "react"
 import type { DasApiAsset } from '@metaplex-foundation/digital-asset-standard-api'
 
 export default function GhostKidSwapFeature() {
+	const { connection } = useConnection()
 	const [selectedNFT, setSelectedNFT] = useState<DasApiAsset | undefined>(undefined)
 	const { publicKey } = useWallet()
 	const {
