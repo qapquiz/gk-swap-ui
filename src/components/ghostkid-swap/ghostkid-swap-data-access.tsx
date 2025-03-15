@@ -12,6 +12,7 @@ import { dasApi } from '@metaplex-foundation/digital-asset-standard-api'
 import type { DasApiAsset, DasApiAssetList } from '@metaplex-foundation/digital-asset-standard-api'
 import { publicKey } from "@metaplex-foundation/umi";
 import type { GhostKidSwapResponse } from "@/app/api/ghostkid/swap/route";
+import toast from "react-hot-toast";
 
 const KIDS_TOKEN_MINT = '4peG5vF6VXbUt8PPA5LDbtdeRAPBGGrspDMW3ot6TdeX'
 const GHOST_KID_COLLECTION_ADDRESS = 'FSw4cZhK5pMmhEDenDpa3CauJ9kLt5agr2U1oQxaH2cv'
@@ -19,13 +20,14 @@ const POOL_ADDRESS = 'JCSbaLqdn6nKtTVTUjAaxsv28TBhmpypcY3VAqdGKWLA';
 
 export function useGhostKidSwap() {
 	const { connection } = useConnection();
-	const { publicKey: walletPublicKey, signTransaction } = useWallet();
+	const { publicKey: walletPublicKey, sendTransaction } = useWallet();
 	const { cluster } = useCluster();
 	const transactionToast = useTransactionToast();
 	const umi = useMemo(() => createUmi(connection.rpcEndpoint), [connection.rpcEndpoint]).use(dasApi())
 
 	const kidsATA = useMemo(() => {
 		if (!walletPublicKey) return null;
+
 		return getAssociatedTokenAddressSync(
 			new PublicKey(KIDS_TOKEN_MINT),
 			walletPublicKey
@@ -41,7 +43,7 @@ export function useGhostKidSwap() {
 				const tokenAccountInfo = await connection.getTokenAccountBalance(kidsATA);
 				return tokenAccountInfo.value.uiAmount || 0;
 			} catch (error) {
-				console.error("Failed to fetch KIDSS token balance:", error);
+				console.error("Failed to fetch KIDS token balance:", error);
 				return 0;
 			}
 		},
@@ -75,7 +77,7 @@ export function useGhostKidSwap() {
 	const ghostKidSwap = useMutation({
 		mutationKey: ['ghostkid', 'swap', { cluster }],
 		mutationFn: async (selectedNFT: DasApiAsset) => {
-			if (!walletPublicKey || !signTransaction) {
+			if (!walletPublicKey) {
 				throw new Error('Wallet not connected')
 			}
 
@@ -103,33 +105,26 @@ export function useGhostKidSwap() {
 				const tx = Transaction.from(swapTxBuffer)
 				console.log(JSON.stringify(tx.instructions, null, 2))
 
-				// sign transaction
-				const signedTx = await signTransaction(tx)
+				const {
+					context: { slot: minContextSlot },
+					value: { blockhash, lastValidBlockHeight }
+				} = await connection.getLatestBlockhashAndContext()
 
-				// send and confirm transaction
-				const latestBlockHash = await connection.getLatestBlockhash()
-				const rawTx = signedTx.serialize()
-				const txId = await connection.sendRawTransaction(rawTx, {
-					skipPreflight: true,
-					maxRetries: 3,
-				})
+				const signature = await sendTransaction(tx, connection, { minContextSlot })
+				await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature })
 
-				await connection.confirmTransaction({
-					blockhash: latestBlockHash.blockhash,
-					lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-					signature: txId,
-				})
-
-				return txId
+				return signature
 			} catch (error) {
 				throw new Error(`cannot swap Ghost Kid: ${error}`)
 			}
 		},
-		onSuccess: (txId: string) => {
-			console.log(`https://xray.helius.xyz/tx/${txId}`)
+		onSuccess: (signature: string) => {
+			console.log(`https://xray.helius.xyz/tx/${signature}`)
+			transactionToast(signature)
 		},
 		onError: (error, variables, context) => {
 			console.error(error)
+			toast.error('Failed to swap Ghost Kid')
 		},
 	});
 
