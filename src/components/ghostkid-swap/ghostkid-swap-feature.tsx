@@ -109,6 +109,7 @@ export function NFTItem({ item, onSelect }: { item: DasApiAsset, onSelect: (item
 		<Image
 			className="rounded-lg"
 			alt={`Ghost Kid ${item.content.metadata.name} image`}
+			//@ts-ignore
 			src={item.content.files?.[0]?.cdn_uri ?? ''}
 			width="100"
 			height="100"

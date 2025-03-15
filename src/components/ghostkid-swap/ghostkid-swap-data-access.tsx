@@ -55,6 +55,7 @@ export function useGhostKidSwap() {
 	const getGhostKidsFromPool = useQuery({
 		queryKey: ['ghostkid', 'get-ghost-kids-from-pool', { cluster }],
 		queryFn: async () => {
+			 //@ts-ignore
 			const assets: DasApiAssetList = await umi.rpc.getAssetsByOwner({
 				owner: publicKey(POOL_ADDRESS),
 			})
