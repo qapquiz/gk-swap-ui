@@ -56,6 +56,7 @@ export default function GhostKidSwapFeature() {
 				</div>
 				<div className="p-2 border rounded-lg">
 					<GhostKidsInPool
+						selectedNFT={selectedNFT}
 						onSelect={(item: DasApiAsset) => {
 							setSelectedNFT(item)
 						}}
@@ -70,7 +71,7 @@ export default function GhostKidSwapFeature() {
 	)
 }
 
-export function GhostKidsInPool({ onSelect }: { onSelect: (item: DasApiAsset) => void }) {
+export function GhostKidsInPool({ selectedNFT, onSelect }: { selectedNFT :DasApiAsset | undefined, onSelect: (item: DasApiAsset) => void }) {
 	const {
 		getGhostKidsFromPool,
 	} = useGhostKidSwap()
@@ -94,6 +95,7 @@ export function GhostKidsInPool({ onSelect }: { onSelect: (item: DasApiAsset) =>
 					<NFTItem
 						key={item.id}
 						item={item}
+						selectedNFT={selectedNFT}
 						onSelect={onSelect}
 					/>
 				))
@@ -102,12 +104,12 @@ export function GhostKidsInPool({ onSelect }: { onSelect: (item: DasApiAsset) =>
 	)
 }
 
-export function NFTItem({ item, onSelect }: { item: DasApiAsset, onSelect: (item: DasApiAsset) => void }) {
+export function NFTItem({ item, selectedNFT, onSelect }: { item: DasApiAsset, selectedNFT: DasApiAsset | undefined, onSelect: (item: DasApiAsset) => void }) {
 	const onClick = () => { onSelect(item) }
 
 	return (
 		<Image
-			className="rounded-lg"
+			className={selectedNFT?.id === item.id ? "border-4 border-yellow-400 rounded-lg" : "rounded-lg"}
 			alt={`Ghost Kid ${item.content.metadata.name} image`}
 			//@ts-ignore
 			src={item.content.files?.[0]?.cdn_uri ?? ''}
