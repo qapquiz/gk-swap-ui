@@ -101,6 +101,7 @@ export function useGhostKidSwap() {
 				// convert from response to Transaction in Solana
 				const swapTxBuffer = Buffer.from(ghostkidSwapResponse.transactions[0], 'base64')
 				const tx = Transaction.from(swapTxBuffer)
+				console.log(JSON.stringify(tx.instructions, null, 2))
 
 				// sign transaction
 				const signedTx = await signTransaction(tx)

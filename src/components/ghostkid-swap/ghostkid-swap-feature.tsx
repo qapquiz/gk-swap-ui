@@ -1,18 +1,16 @@
 'use client'
 
+import Image from "next/image"
 import { useConnection, useWallet } from "@solana/wallet-adapter-react"
 import { useGhostKidSwap } from "./ghostkid-swap-data-access"
 import { useMemo, useState } from "react"
 import type { DasApiAsset } from '@metaplex-foundation/digital-asset-standard-api'
 
 export default function GhostKidSwapFeature() {
-	const { connection } = useConnection()
 	const [selectedNFT, setSelectedNFT] = useState<DasApiAsset | undefined>(undefined)
 	const { publicKey } = useWallet()
 	const {
-		getGhostKidsFromPool,
 		kidsTokenBalance,
-		kidsATA,
 		ghostKidSwap,
 	} = useGhostKidSwap()
 
@@ -108,7 +106,7 @@ export function NFTItem({ item, onSelect }: { item: DasApiAsset, onSelect: (item
 	const onClick = () => { onSelect(item) }
 
 	return (
-		<img
+		<Image
 			className="rounded-lg"
 			alt={`Ghost Kid ${item.content.metadata.name} image`}
 			src={item.content.files?.[0]?.cdn_uri ?? ''}
