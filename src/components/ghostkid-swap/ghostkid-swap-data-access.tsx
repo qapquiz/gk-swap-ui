@@ -50,6 +50,7 @@ export function useGhostKidSwap() {
 		enabled: !!walletPublicKey && !!kidsATA,
 		retry: 2,
 		retryDelay: 1000,
+		refetchInterval: 60 * 1000 // 60 seconds
 	});
 
 	const getGhostKidsFromPool = useQuery({
@@ -122,8 +123,9 @@ export function useGhostKidSwap() {
 		onSuccess: (signature: string) => {
 			console.log(`https://xray.helius.xyz/tx/${signature}`)
 			transactionToast(signature)
+			getGhostKidsFromPool.refetch()
 		},
-		onError: (error, variables, context) => {
+		onError: (error, _variables, _context) => {
 			console.error(error)
 			toast.error('Failed to swap Ghost Kid')
 		},
