@@ -65,19 +65,23 @@ export default function GhostKidSwapFeature() {
 			</div>
 		</div>
 	) : (
-		<div>
-			<p>Please connect your wallet to interact</p>
+		<div className="m-8">
+			<p className="text-xl font-mono">Please connect your wallet to interact</p>
 		</div>
 	)
 }
 
-export function GhostKidsInPool({ selectedNFT, onSelect }: { selectedNFT :DasApiAsset | undefined, onSelect: (item: DasApiAsset) => void }) {
+export function GhostKidsInPool({ selectedNFT, onSelect }: { selectedNFT: DasApiAsset | undefined, onSelect: (item: DasApiAsset) => void }) {
 	const {
 		getGhostKidsFromPool,
 	} = useGhostKidSwap()
 
 	if (getGhostKidsFromPool.isLoading) {
-		return <span className="loading loading-spinner loading-lg" />
+		return (
+			<div className="p-4 flex items-center justify-center">
+				<span className="loading loading-spinner loading-lg" />
+			</div>
+		)
 	}
 
 	if (!getGhostKidsFromPool.data) {
